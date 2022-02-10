@@ -10,6 +10,7 @@ import xml.etree.ElementTree as ElementTree
 #import PIL.Image as Image
 import matplotlib.pyplot as plt
 import lxml.etree as etree
+import numpy as np
 
 path_main = os.path.abspath('main.py')
 path_repo = os.path.dirname(path_main)
@@ -114,129 +115,206 @@ others_annotations_xml_loc = os.path.join(path_ok, 'others', 'annotations', '*.x
 #             copy_data('others', 'train', filename, filename_xml)
 
 
-def input():
-    operation = input("Type classify: ")
-    i=0
-    #if operation == 'classify':
-    if operation == 'c':
-        n_files_str = input('Liczba plików do przetworzenia: ')
-        n_files = int(n_files_str)
-        file_names = []
-        frame_numbers = []
-
-        for n in range(n_files):
-            print('Nazwa ', i+1, ' pliku: ')
-            file_1 = input()
-            file_names.append(file_1)
-            print('Liczba wycinków obrazu do sklasyfikowania na ', i+1, ' zdjęciu: ')
-            n_1 = input()
-            frame_numbers.append(n_1)
-
-            # TODO - for do dodawania współrzędnych wszystkich sprawdzanych ramek
-
-            i += 1
-
-    for x in range(len(frame_numbers)):
-        print(frame_numbers[x])
+# def input():
+#     print('Type classify: ')
+#     operation = input()
+#     i=0
+#     #if operation == 'classify':
+#     if operation == 'c':
+#         print('Liczba plików do przetworzenia: ')
+#         n_files_str = input()
+#         n_files = int(n_files_str)
+#         file_names = []
+#         frame_numbers = []
+#
+#         for n in range(n_files):
+#             print('Nazwa ', i+1, ' pliku: ')
+#             file_1 = input()
+#             file_names.append(file_1)
+#             print('Liczba wycinków obrazu do sklasyfikowania na ', i+1, ' zdjęciu: ')
+#             n_1 = input()
+#             frame_numbers.append(n_1)
+#
+#             # TODO - for do dodawania współrzędnych wszystkich sprawdzanych ramek
+#
+#             i += 1
+#
+#     # for x in range(len(frame_numbers)):
+#     #     print(frame_numbers[x])
 
 def import_data_train(path, set):
-    # path_main = os.path.abspath('main.py')
-    # path_rep = os.path.dirname(path_main)
-    # path_ok = os.path.dirname(path_rep)
-    #path_load = os.path.abspath(path, set)
-
     images_path = os.path.join(path, set,'images/*.png')
     annotations_path = os.path.join(path, set,'annotations/*.xml')
-    #print(images_path)
-    #print(annotations_path)
-
     images_list = glob.glob(images_path)
     annotations_list = glob.glob(annotations_path)
-    #print(images_list)
-    #print(annotations_list)
-
-    data_paths = []
+    data_list = []
     data = []
     n = 0
 
     for k in annotations_list:  # przeglądanie kolejnych plików xml
-
-        # data_paths.append({'image': images_list[n], 'annotation': annotations_list[n]})
-
-        element = ElementTree.parse(k)
-        # print(element)
-        # print(annotations_list[n])
-        # print(images_list[n])
-
+        element = ElementTree.parse(k)  # 'otwiera xmla', jako element tree, znajdujemy się w sekcji xmla <annotations>
+        root = element.getroot() # umożliwia dostęp do danych 'głębiej' w xmlu
+        #print(element)
         flag = 0
-
         # obj = element.findall('filename')
         # for j in obj:
         #     filename_png = j.text  # uzyskujemy nazwę obecnie sprawdzanego pliku png
         #     filename_xml = re.sub('.png', '.xml', filename_png)  # uzyskujemy nazwę pliku xml
         #     print(filename_png)
 
+        amount_all = 0
+        amount_limits = 0
+
+        filename = root.find('filename').text
+
         obj = element.findall('object/name')
+        dict = {}
         for i in obj:
             name = i.text
-            #print(name)
 
             if name in ['speedlimit']:
                 flag = 1
+                amount_limits += 1
+                amount_all += 1
 
+            else:
+                amount_all +=1
+
+            #print('\n')
+
+        dict['image'] = images_list[n]  # dodawanie ściezki do obrazka
+        dict['annotation'] = annotations_list[n]    # dodawanie ścieżki do xml
+        dict['signs_number'] = amount_all
+        dict['limits_number'] = amount_limits
+
+        # dodawanie labela - czy na zdjęciu występuje speedlimit
         if (flag == 1):
-            #print('spoko')
-            data_paths.append({'image': images_list[n], 'annotation': annotations_list[n], 'label': 1})
+            dict['label'] = 1
+            #data_list.append({'image': images_list[n], 'annotation': annotations_list[n], 'label': 1, 'signs_number': amount_all, 'limits_number': amount_limits})
         else:
-            #print('niespoko')
-            data_paths.append({'image': images_list[n], 'annotation': annotations_list[n], 'label': 0})
+            dict['label'] = 0
+            #data_list.append({'image': images_list[n], 'annotation': annotations_list[n], 'label': 0, 'signs_number': amount_all, 'limits_number': amount_limits})
 
         n += 1
 
-    # for j in data_paths:
+        all_signs = root.findall('object')
+        #print(filename)
+        j = 1
+        for s in all_signs:
+            name = s.find('name').text
+            sign_frame = []
+            if name == 'speedlimit':
+                xmin = int(s.find('bndbox/xmin').text)
+                dict[f'x_{j}_min'] = xmin
+                ymin = int(s.find('bndbox/ymin').text)
+                dict[f'y_{j}_min'] = ymin
+                xmax = int(s.find('bndbox/xmax').text)
+                dict[f'x_{j}_max'] = xmax
+                ymax = int(s.find('bndbox/ymax').text)
+                dict[f'y_{j}_max'] = ymax
+
+                j += 1
+
+                #print(name, xmin, ymin, xmax, ymax)
+
+        data_list.append(dict)
+
+    # for j in data_list:
     #     print(j['annotation'])
 
-    return data_paths
+    return data_list
+
+def input_data():
+    i = 0
+    print('Liczba plików do przetworzenia: ')
+    n_files_str = input()
+    n_files = int(n_files_str)
+    data_input = []
+    file_names = []
+    frame_numbers = []
+
+    for n in range(n_files):
+        print('Nazwa ', i + 1, ' pliku: ')
+        file_1 = input()
+        #file_names.append(file_1)
+        print('Liczba wycinków obrazu do sklasyfikowania na ', i + 1, ' zdjęciu: ')
+        n_1_str = input()
+        n_1 = int(n_1_str)
+
+        dict = {}
+        dict['file'] = file_1   #przypisanie nazwy do odpowiedniego pola w słowniku
+        dict['frames_number'] = n_1     #przypisanie liczby sprawdzanych ramek w danym pliku do odpowiedniego pola w słowniku
+
+
+        # print(dict('frames_number'))
+
+        # for k in range(n_1):
+        #     print('Podaj współrzędne dla ramki ', k+1, ": xmin, xmax, ymin, ymax")
+        #     frame = input().split()
+        #     frame_int = [int(x) for x in frame]
+        #     dict[f'frame{k+1}'] = frame_int
+        #     print(dict)
+        #
+        # i += 1
+
+
+
+    data_input.append(dict)
+    print(data_input)
+
+
+    return 0
+
+def crop_speedlimits(database):
+    cropped_speedlimits = []
+    for data in database:
+        image_path = data['image']
+        print(image_path)
+
+        if data['label'] == 1:
+            for i in range(data['limits_number']):
+                xmin = data[f'x_{i+1}_min']
+                ymin = data[f'y_{i+1}_min']
+                xmax = data[f'x_{i+1}_max']
+                ymax = data[f'y_{i+1}_max']
+                #print(xmin, ymin, xmax, ymax)
+                img = cv2.imread(image_path)
+                crop_img = img[ymin:ymax, xmin:xmax]
+                #cv2.imshow("speedlimit", crop_img)
+                #cv2.waitKey(0)
+                cropped_speedlimits.append(crop_img)
+
+    return cropped_speedlimits
 
 
 if __name__ == '__main__':
-    #input()
-    data_train_paths = import_data_train(path_ok, 'train')
+    # print('Type classify: ')
+    # operation = input()
+    # if operation == 'c':
+    #     input_data()
+    # print(cv2.__version__)
 
-    for j in data_train_paths:
-        print(j['image'])
-        # testowanie cv2.imread
-        path_1 = j['image']
-        img = cv2.imread(path_1)
-        cv2.imshow('image', img)
-        cv2.waitKey()
+    imported_train_data = import_data_train(path_ok, 'train')
 
+    cropped_limits = crop_speedlimits(imported_train_data)
 
-    # slownik = []
-    # slownik.append({'image': 'jeden'})
-    # slownik.append({'annotation': 'dwa'})
-    # slownik.append({'label': 0})
-    #
-    # slownik.append({'image': '1jeden'})
-    # slownik.append({'annotation': '1dwa'})
-    # slownik.append({'label': 1})
-    #
-    # for j in slownik:
-    #     print(j['image'])
+    # for j in imported_train_data:
+    #     print(j)
 
+    for j in cropped_limits:
+        cv2.imshow("speedlimit", j)
+        cv2.waitKey(0)
 
-
-
+    #testowanie cv2.imread
+    # path_1 = r'D:\\AiR\\sem5\\WdSI lab\\projekt_wdsi\\train\\images\\road544.png'
+    # img = cv2.imread(path_1)
+    # crop_img = img[223:260, 107:145]
+    # #crop_img = img[1:100, 1:200]
+    # cv2.imshow("cropped", crop_img)
+    # cv2.waitKey(0)
 
     # sort_data()
     # train_or_test_limits()
     # train_or_test_others()
 
-    # path = os.path.abspath('main.py')
-    # p = os.path.dirname(path)
-    # p1 = os.path.dirname(p)
-    # print(p)
-    # print(p1)
-    # data_dir = os.path.join(p1, "dataset")
-    # annotations_dir = os.path.join(data_dir, "annotations")
-    # print(annotations_dir)
+
