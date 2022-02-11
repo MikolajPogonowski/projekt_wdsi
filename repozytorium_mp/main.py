@@ -9,6 +9,7 @@ import random
 from xml.dom import minidom
 import xml.etree.ElementTree as ElementTree
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import confusion_matrix
 #import PIL.Image as Image
 import matplotlib.pyplot as plt
 import lxml.etree as etree
@@ -144,7 +145,7 @@ others_annotations_xml_loc = os.path.join(path_ok, 'others', 'annotations', '*.x
 #     # for x in range(len(frame_numbers)):
 #     #     print(frame_numbers[x])
 
-def import_data_train(path, set):
+def import_data(path, set):
     images_path = os.path.join(path, set,'images/*.png')
     annotations_path = os.path.join(path, set,'annotations/*.xml')
     images_list = glob.glob(images_path)
@@ -286,6 +287,66 @@ def input_data():
 
     return 0
 
+def input_2():
+    test_images_path = os.path.join(path_ok, 'test', 'images')
+    print(test_images_path)
+    i = 0
+    print('Liczba plików do przetworzenia: ')
+    n_files_str = input()
+    n_files = int(n_files_str)
+    data_input = []
+    file_names = []
+    frame_numbers = []
+
+    for n in range(n_files):
+        print('Nazwa ', i + 1, ' pliku: ')
+        file_1 = input()
+        #file_1 = 'road329.png' ####################################### to usunąć po testowaniu i zostawić linijkę powyżej
+        # file_names.append(file_1)
+        img_path = os.path.join(test_images_path, file_1)
+        img = cv2.imread(img_path)
+        #cv2.imshow('img', img)
+        #cv2.waitKey(0)
+
+        print('Liczba wycinków obrazu do sklasyfikowania na ', i + 1, ' zdjęciu: ')
+        n_1_str = input()
+        n_1 = int(n_1_str)
+
+
+        #dict = {}
+        #dict['file'] = file_1  # przypisanie nazwy do odpowiedniego pola w słowniku
+        #dict['frames_number'] = n_1  # przypisanie liczby sprawdzanych ramek w danym pliku do odpowiedniego pola w słowniku
+
+        #print(dict('frames_number'))
+
+        for k in range(n_1):
+            dict = {}
+            print('Podaj współrzędne dla ramki ', k+1, ": xmin, xmax, ymin ymax") # !!! tu trzeba przerobić na wpisywanie w innej kolejności, tak jak w instrukcji do projektu
+            frame = input().split()
+            frame_int = [int(x) for x in frame]
+            #dict[f'frame{k+1}'] = frame_int
+            xmin = frame_int[0]
+            ymin = frame_int[2]
+            xmax = frame_int[1]
+            ymax = frame_int[3]
+            crop_img = img[ymin:ymax, xmin:xmax]
+            cv2.imshow('crop', crop_img)
+            cv2.waitKey(0)
+            dict['image'] = crop_img    # to trafi na sifta i bovw
+            #print('Podaj label (1 - limit, 0 - other)')
+            #label = int(input())
+            #dict['label'] = label
+            print(dict)
+
+            data_input.append(dict)
+        i += 1
+
+
+    #print(data_input)
+
+    return data_input
+
+
 def crop_signs(database):
     cropped_signs = []
     for data in database:
@@ -314,6 +375,10 @@ def crop_signs(database):
             # print(label)
 
             cropped_signs.append({'image': crop_img, 'label': label})
+
+        # todo - dodawanie losowych ramek do zbioru
+
+
 
 
     return cropped_signs
@@ -404,37 +469,198 @@ def train(data):
 
     return rf
 
+def predict(rf, data):
+    """
+    Predicts labels given a model and saves them as "label_pred" (int) entry for each sample.
+    @param rf: Trained model.
+    @param data: List of dictionaries, one for every sample, with entries "image" (np.array with image), "label" (class_id),
+                    "desc" (np.array with descriptor).
+    @return: Data with added predicted labels for each sample.
+    """
+    # perform prediction using trained model and add results as "label_pred" (int) entry in sample
+
+    # for sample in data:
+    # sample.update({'prediction':rf.predict(sample['desc'])[0]})
+    for sample in data:
+        if sample['desc'] is not None:
+            predict = rf.predict(sample['desc'])
+            sample['label_pred'] = int(predict)
+
+            ###
+            if int(predict) == 1:
+                print('speedlimit')
+            else:
+                print('other')
+            ###
+
+
+    # ------------------
+    return data
+
+def evaluate(data):
+    """
+    Evaluates results of classification.
+    @param data: List of dictionaries, one for every sample, with entries "image" (np.array with image), "label" (class_id),
+                    "desc" (np.array with descriptor), and "label_pred".
+    @return: Nothing.
+    """
+    # evaluate classification results and print statistics
+    # TODO PUT YOUR CODE HERE
+    correct = 0
+    incorrect = 0
+    eval = []
+    real = []
+    for sample in data:
+        if sample['desc'] is not None:
+            eval.append(sample['label_pred'])
+            real.append(sample['label'])
+            if sample['label_pred'] == sample['label']:
+                correct += 1
+            else:
+                incorrect += 1
+
+    print('score = %.3f' % (correct / (correct + incorrect)))
+
+    conf = confusion_matrix(real, eval)
+    print(conf)
+    # ------------------
+
+    # this function does not return anything
+    return
+
+def draw_grid(images, n_classes, grid_size, h, w):
+    """
+    Draws images on a grid, with columns corresponding to classes.
+    @param images: Dictionary with images in a form of (class_id, list of np.array images).
+    @param n_classes: Number of classes.
+    @param grid_size: Number of samples per class.
+    @param h: Height in pixels.
+    @param w: Width in pixels.
+    @return: Rendered image
+    """
+    image_all = np.zeros((h, w, 3), dtype=np.uint8)
+    h_size = int(h / grid_size)
+    w_size = int(w / n_classes)
+
+    col = 0
+    for class_id, class_images in images.items():
+        for idx, cur_image in enumerate(class_images):
+            row = idx
+
+            if col < n_classes and row < grid_size:
+                image_resized = cv2.resize(cur_image, (w_size, h_size))
+                image_all[row * h_size: (row + 1) * h_size, col * w_size: (col + 1) * w_size, :] = image_resized
+
+        col += 1
+
+    return image_all
+
+
+def display(data):
+    """
+    Displays samples of correct and incorrect classification.
+    @param data: List of dictionaries, one for every sample, with entries "image" (np.array with image), "label" (class_id),
+                    "desc" (np.array with descriptor), and "label_pred".
+    @return: Nothing.
+    """
+    n_classes = 3
+
+    corr = {}
+    incorr = {}
+
+    for idx, sample in enumerate(data):
+        if sample['desc'] is not None:
+            if sample['label_pred'] == sample['label']:
+                if sample['label_pred'] not in corr:
+                    corr[sample['label_pred']] = []
+                corr[sample['label_pred']].append(idx)
+            else:
+                if sample['label_pred'] not in incorr:
+                    incorr[sample['label_pred']] = []
+                incorr[sample['label_pred']].append(idx)
+
+            # print('ground truth = %s, predicted = %s' % (sample['label'], pred))
+            # cv2.imshow('image', sample['image'])
+            # cv2.waitKey()
+
+    grid_size = 8
+
+    # sort according to classes
+    corr = dict(sorted(corr.items(), key=lambda item: item[0]))
+    corr_disp = {}
+    for key, samples in corr.items():
+        idxs = random.sample(samples, min(grid_size, len(samples)))
+        corr_disp[key] = [data[idx]['image'] for idx in idxs]
+    # sort according to classes
+    incorr = dict(sorted(incorr.items(), key=lambda item: item[0]))
+    incorr_disp = {}
+    for key, samples in incorr.items():
+        idxs = random.sample(samples, min(grid_size, len(samples)))
+        incorr_disp[key] = [data[idx]['image'] for idx in idxs]
+
+    image_corr = draw_grid(corr_disp, n_classes, grid_size, 800, 600)
+    image_incorr = draw_grid(incorr_disp, n_classes, grid_size, 800, 600)
+
+    cv2.imshow('images correct', image_corr)
+    cv2.imshow('images incorrect', image_incorr)
+    cv2.waitKey()
+
+    # this function does not return anything
+    return
+
 def main():
-    # print('Type classify: ')
-    # operation = input()
-    # if operation == 'c':
-    #     input_data()
-    # print(cv2.__version__)
+    print('Type classify: ')
+    operation = input()
+    #operation = 'classify'
+    if operation == 'classify':
+        #input_data = input_2()
+        data_test = input_2()
+        # for j in data_test:
+        #     print(j['label'])
 
-    imported_train_data = import_data_train(path_ok, 'train')
-    for j in imported_train_data:
-        print(j)
+# training start
+        imported_train_data = import_data(path_ok, 'train')
+        # for j in imported_train_data:
+        #     print(j)
 
-    cropped_signs = crop_signs(imported_train_data)
-    i = 0
-    x = 0
-    #for j in cropped_signs:
-        # cv2.imshow("speedlimit", j['image'])
-        # cv2.waitKey(0)
-        # print(j['label'])
-    #     x += int(j['label'])
-    #     i += 1
-    # print(i, x)
+        data_train = crop_signs(imported_train_data)
+        i = 0
+        x = 0
+        #for j in data_train:
+            # cv2.imshow("speedlimit", j['image'])
+            # cv2.waitKey(0)
+            # print(j['label'])
+        #     x += int(j['label'])
+        #     i += 1
+        # print(i, x)
 
-    learn_bovw(cropped_signs)
-    print('bowv_learned')
+        print('learning_bovw...')
+        learn_bovw(data_train)
+        print('bowv_learned')
 
-    cropped_signs_1 = extract_features(cropped_signs)
-    print('features extracted')
+        print('extracting_features...')
+        cropped_signs_1 = extract_features(data_train)
+        print('features_extracted')
 
-    RandomForest = train(cropped_signs_1)
-    print("model trained")
+        print('training_model...')
+        rf = train(cropped_signs_1)
+        print("model_trained")
 
+# training end
+
+# testing start
+
+        #imported_test_data = import_data(path_ok, 'test')
+        #data_test = crop_signs(imported_test_data)
+
+        print('testing...')
+        data_test = extract_features(data_test)
+        data_test = predict(rf, data_test)
+        #evaluate(data_test)
+        #display(data_test)
+        print('tested')
+
+#testing end
 
 
 if __name__ == '__main__':
