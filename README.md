@@ -19,10 +19,10 @@ Po zakończeniu uczenia modelu, wyświetli się komunikat "model_trained". Wówc
 - "classify" by wejść do realizacji zadania klasyfikacji
 - liczbę plików (n), z których chcemy 'wyciąć' fragmenty obrazu
 a następnie kolejno:
-dla n plików:
+- dla n plików:
 - nazwę pliku .png
 - liczbę (m) wycinków w obrębie danego pliku .png
-	dla m wycinków:
+- dla m wycinków:
 	- współrzędne wycinka w kolejności xmin, xmax, ymin, 		ymax (oddzielając je spacjami, zatwierdzajac enterem 		po wpisaniu wszystkich czterech)
 
 Funkcja "input_2()" na podstawie wpisanych danych 'wycina' określone przez użytkownika ramki, z określonych obrazków i tworzy z nich listę jednoelementowych słowników o polu 'image' zawierającym wycięty fragment obrazu. Lista ta jest nastepnie zwracana przez funkcję. Warto zauważyć, że w przeciwieństwie do etapu trenowania, nasze dane w tym przypadku nie mają 'labela' określającego, czy na danym wycinku znajduje się znak, czy nie.
