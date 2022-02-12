@@ -289,7 +289,7 @@ def input_data():
 
 def input_2():
     test_images_path = os.path.join(path_ok, 'test', 'images')
-    print(test_images_path)
+    #print(test_images_path)
     i = 0
     print('Liczba plików do przetworzenia: ')
     n_files_str = input()
@@ -336,7 +336,7 @@ def input_2():
             #print('Podaj label (1 - limit, 0 - other)')
             #label = int(input())
             #dict['label'] = label
-            print(dict)
+            #print(dict)
 
             data_input.append(dict)
         i += 1
@@ -346,8 +346,7 @@ def input_2():
 
     return data_input
 
-
-def crop_signs(database):
+def crop_images(database):
     cropped_signs = []
     for data in database:
         image_path = data['image']
@@ -484,6 +483,7 @@ def predict(rf, data):
     for sample in data:
         if sample['desc'] is not None:
             predict = rf.predict(sample['desc'])
+            #print(predict)
             sample['label_pred'] = int(predict)
 
             ###
@@ -555,7 +555,6 @@ def draw_grid(images, n_classes, grid_size, h, w):
 
     return image_all
 
-
 def display(data):
     """
     Displays samples of correct and incorrect classification.
@@ -609,7 +608,42 @@ def display(data):
     return
 
 def main():
-    print('Type classify: ')
+# training start
+
+    print('loading train data...')
+    imported_train_data = import_data(path_ok, 'train')
+    # for j in imported_train_data:
+    #     print(j)
+
+    data_train = crop_images(imported_train_data)
+    print('train data loaded')
+
+    # i = 0
+    # x = 0
+    # for j in data_train:
+    # cv2.imshow("speedlimit", j['image'])
+    # cv2.waitKey(0)
+    # print(j['label'])
+    #     x += int(j['label'])
+    #     i += 1
+    # print(i, x)
+
+    print('learning_bovw...')
+    learn_bovw(data_train)
+    print('bowv_learned')
+
+    print('extracting_features...')
+    cropped_signs_1 = extract_features(data_train)
+    print('features_extracted')
+
+    print('training_model...')
+    rf = train(cropped_signs_1)
+    print("model_trained")
+
+# training end
+
+# input start
+    print('Type "classify": ')
     operation = input()
     #operation = 'classify'
     if operation == 'classify':
@@ -618,47 +652,21 @@ def main():
         # for j in data_test:
         #     print(j['label'])
 
-# training start
-        imported_train_data = import_data(path_ok, 'train')
-        # for j in imported_train_data:
-        #     print(j)
+# input end
 
-        data_train = crop_signs(imported_train_data)
-        i = 0
-        x = 0
-        #for j in data_train:
-            # cv2.imshow("speedlimit", j['image'])
-            # cv2.waitKey(0)
-            # print(j['label'])
-        #     x += int(j['label'])
-        #     i += 1
-        # print(i, x)
 
-        print('learning_bovw...')
-        learn_bovw(data_train)
-        print('bowv_learned')
-
-        print('extracting_features...')
-        cropped_signs_1 = extract_features(data_train)
-        print('features_extracted')
-
-        print('training_model...')
-        rf = train(cropped_signs_1)
-        print("model_trained")
-
-# training end
 
 # testing start
 
         #imported_test_data = import_data(path_ok, 'test')
         #data_test = crop_signs(imported_test_data)
 
-        print('testing...')
+        #print('testing...')
         data_test = extract_features(data_test)
         data_test = predict(rf, data_test)
         #evaluate(data_test)
         #display(data_test)
-        print('tested')
+        #print('tested')
 
 #testing end
 
