@@ -171,7 +171,6 @@ def crop_images(database):
 
             cropped_signs.append({'image': crop_img, 'label': label})
 
-        # todo - dodawanie losowych ramek do zbioru
 
 
 
@@ -377,30 +376,30 @@ def display(data):
 def main():
 # training start
 
-    print('loading train data...')
+    #print('loading train data...')
     imported_train_data = import_data(path_ok, 'train')
     # for j in imported_train_data:
     #     print(j)
 
     data_train = crop_images(imported_train_data)
-    print('train data loaded')
+    #print('train data loaded')
 
-    print('learning_bovw...')
+    #print('learning_bovw...')
     learn_bovw(data_train)
-    print('bowv_learned')
+    #print('bowv_learned')
 
-    print('extracting_features...')
+    #print('extracting_features...')
     cropped_signs_1 = extract_features(data_train)
-    print('features_extracted')
+    #print('features_extracted')
 
-    print('training_model...')
+    #print('training_model...')
     rf = train(cropped_signs_1)
-    print("model_trained")
+    #print("model_trained")
 
 # training end
 
 # input start
-    print('Type "classify": ')
+    #print('Type "classify": ')
     operation = input()
     #operation = 'classify'
     if operation == 'classify':
