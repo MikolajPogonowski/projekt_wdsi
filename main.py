@@ -25,10 +25,16 @@ limits_annotations_xml_loc = os.path.join(path_ok, 'limits', 'annotations', '*.x
 others_annotations_xml_loc = os.path.join(path_ok, 'others', 'annotations', '*.xml')
 
 def import_data(path, set):
-    images_path = os.path.join(path, set,'images/*.png')
-    annotations_path = os.path.join(path, set,'annotations/*.xml')
+    images_path = os.path.join(path, set, 'images/*.png')
+    annotations_path = os.path.join(path, set, 'annotations/*.xml')
     images_list = glob.glob(images_path)
     annotations_list = glob.glob(annotations_path)
+    images_list.sort()
+    # for n in images_list:
+    #     print(n)
+    annotations_list.sort()
+    # for n in annotations_list:
+    #     print(n)
     data_list = []
     n = 0
 
@@ -84,6 +90,7 @@ def import_data(path, set):
             xmin = int(s.find('bndbox/xmin').text)
             dict[f'x_{j}_min'] = xmin
             ymin = int(s.find('bndbox/ymin').text)
+
             dict[f'y_{j}_min'] = ymin
             xmax = int(s.find('bndbox/xmax').text)
             dict[f'x_{j}_max'] = xmax
