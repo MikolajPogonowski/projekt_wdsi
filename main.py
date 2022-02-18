@@ -15,6 +15,32 @@ import matplotlib.pyplot as plt
 import lxml.etree as etree
 import numpy as np
 
+# TODO Jakość kodu i raport (4/4)
+
+
+# TODO Skuteczność klasyfikacji 0.0 (0/4)
+# TODO [0.00, 0.50) - 0.0
+# TODO [0.50, 0.55) - 0.5
+# TODO [0.55, 0.60) - 1.0
+# TODO [0.60, 0.65) - 1.5
+# TODO [0.65, 0.70) - 2.0
+# TODO [0.70, 0.75) - 2.5
+# TODO [0.75, 0.80) - 3.0
+# TODO [0.80, 0.85) - 3.5
+# TODO [0.85, 1.00) - 4.0
+
+# stderr:
+# Traceback (most recent call last):
+#   File "main.py", line 418, in <module>
+#     main()
+#   File "main.py", line 388, in main
+#     learn_bovw(data_train)
+#   File "main.py", line 192, in learn_bovw
+#     kpts, desc = sift.compute(sample['image'], kpts)
+# cv2.error: vector::_M_default_append
+
+# TODO Skuteczność detekcji (0/2)
+
 path_main = os.path.abspath('main.py')
 path_repo = os.path.dirname(path_main)
 path_ok = os.path.dirname(path_repo)
@@ -53,6 +79,7 @@ def import_data(path, set):
 
         obj = element.findall('object/name')
         dict = {}
+        # TODO To mozna zrobic w petli ponizej.
         for i in obj:
             name = i.text
 
