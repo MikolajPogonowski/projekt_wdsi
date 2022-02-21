@@ -18,7 +18,7 @@ import numpy as np
 # TODO Jakość kodu i raport (4/4)
 
 
-# TODO Skuteczność klasyfikacji 0.0 (0/4)
+# TODO Skuteczność klasyfikacji 0.916 (4/4)
 # TODO [0.00, 0.50) - 0.0
 # TODO [0.50, 0.55) - 0.5
 # TODO [0.55, 0.60) - 1.0
@@ -29,17 +29,10 @@ import numpy as np
 # TODO [0.80, 0.85) - 3.5
 # TODO [0.85, 1.00) - 4.0
 
-# stderr:
-# Traceback (most recent call last):
-#   File "main.py", line 418, in <module>
-#     main()
-#   File "main.py", line 388, in main
-#     learn_bovw(data_train)
-#   File "main.py", line 192, in learn_bovw
-#     kpts, desc = sift.compute(sample['image'], kpts)
-# cv2.error: vector::_M_default_append
-
 # TODO Skuteczność detekcji (0/2)
+
+# TODO Poprawki po terminie. (-1)
+
 
 path_main = os.path.abspath('main.py')
 path_repo = os.path.dirname(path_main)
